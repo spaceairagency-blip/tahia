@@ -382,6 +382,17 @@
         toast.style.borderLeftColor = err ? "#f43f5e" : "#10b981";
         setTimeout(() => toast.style.display = "none", 2500);
     }
+    if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => {
+        console.log('Service Worker registered with scope: ', registration.scope);
+      })
+      .catch(error => {
+        console.log('Service Worker registration failed: ', error);
+      });
+  });
+}
 
     // current month income/expense
     function getCurrentMonthTotals() {
