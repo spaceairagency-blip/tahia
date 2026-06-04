@@ -1,5 +1,5 @@
 const CACHE_NAME = 'v4_cache';
-const ASSETS = ['/', '/index.html', 'a.html', 'sw.js', 'b.html' ];
+const ASSETS = ['/', '/index.html', 'a.html', 'sw.js','b.html' ];
 
 // 1. Install Event (Caching core files)
 self.addEventListener('install', (e) => {
