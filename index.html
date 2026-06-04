@@ -1,10 +1,16 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>SalaryVault — Smart Finance Tracker + Instant Calculator</title>
+    <!-- PWA Meta & Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SalaryVault">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%2306b6d4'/%3E%3Ctext x='50' y='67' font-size='50' text-anchor='middle' fill='white' font-weight='bold'%3E💰%3C/text%3E%3C/svg%3E">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -141,6 +147,21 @@
         }
         .btn-outline i { margin-right: 8px; }
         .btn-outline:hover { background: var(--accent-cyan); color: #030712; border-color: transparent; }
+
+        /* Install Button Style (new) */
+        .btn-install {
+            background: linear-gradient(105deg, #8b5cf6, #06b6d4);
+            border: none;
+            padding: 8px 22px;
+            border-radius: 40px;
+            font-weight: 700;
+            box-shadow: 0 0 8px rgba(6,182,212,0.4);
+            transition: 0.2s;
+        }
+        .btn-install:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 16px var(--accent-cyan);
+        }
 
         .content-scroll {
             padding: 28px 32px;
@@ -311,6 +332,8 @@
             .sidebar-premium .logo-area span { display: none; }
             .nav-item-modern span:last-child { display: none; }
             .content-scroll { padding: 20px; }
+            .btn-install span { display: none; }
+            .btn-install i { margin: 0; }
         }
         .badge-custom {
             background: #1e293b;
@@ -321,6 +344,11 @@
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 14px 8px; background: #1e293b80; }
         td { padding: 12px 8px; border-bottom: 1px solid #1e293b; }
+        .install-badge {
+            background: #0f172a;
+            border-radius: 60px;
+            transition: all 0.2s;
+        }
     </style>
 </head>
 <body>
@@ -341,8 +369,11 @@
     <div class="main-dashboard">
         <div class="header-glass">
             <div class="page-headline" id="pageTitle"><i class="fas fa-chart-line"></i> Dashboard</div>
-            <div><button class="btn-outline" id="exportDataBtn"><i class="fas fa-download"></i> Export</button>
-            <button class="btn-outline" id="helpBtn" style="margin-left:10px"><i class="fas fa-question"></i> Guide</button></div>
+            <div style="display: flex; gap: 12px;">
+                <button class="btn-outline" id="exportDataBtn"><i class="fas fa-download"></i> Export</button>
+                <button class="btn-outline" id="helpBtn" style="margin-left:0px"><i class="fas fa-question"></i> Guide</button>
+                <button id="installAppBtn" class="btn-install" style="display: none;"><i class="fas fa-download"></i> <span>Install App</span></button>
+            </div>
         </div>
         <div class="content-scroll" id="renderArea"></div>
     </div>
@@ -356,8 +387,8 @@
         transactions: []   // completely empty initially
     };
 
-    // Instant calculator temporary array (not saved to localStorage unless user adds expense)
-    let instantBasket = [];   // { name, amount }
+    // Instant calculator temporary array
+    let instantBasket = [];
 
     // helpers
     const getSymbol = (cur) => ({ USD:"$", EUR:"€", GBP:"£", BDT:"৳", INR:"₹" }[cur] || "$");
@@ -382,18 +413,7 @@
         toast.style.borderLeftColor = err ? "#f43f5e" : "#10b981";
         setTimeout(() => toast.style.display = "none", 2500);
     }
-    if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(registration => {
-        console.log('Service Worker registered with scope: ', registration.scope);
-      })
-      .catch(error => {
-        console.log('Service Worker registration failed: ', error);
-      });
-  });
-}
-
+    
     // current month income/expense
     function getCurrentMonthTotals() {
         const curMonth = new Date().toISOString().slice(0,7);
@@ -434,7 +454,6 @@
         return `<div class="form-modern-card"><h3><i class="fas fa-receipt"></i> Record Expense</h3><form id="expenseFormSubmit"><input type="number" id="expAmount" step="0.01" placeholder="Amount" required><input type="date" id="expDate" value="${new Date().toISOString().slice(0,10)}"><select id="expCategory"><option>Food</option><option>Transport</option><option>Shopping</option><option>Entertainment</option><option>Bills</option><option>Healthcare</option><option>Rent</option><option>Travel</option><option>Other</option></select><input type="text" id="expDesc" placeholder="Description"><select id="payMethod"><option>Cash</option><option>Card</option><option>Mobile</option><option>Bank</option></select><button type="submit" class="btn-primary-grad">💸 Add Expense</button></form></div>`;
     }
 
-    // ---------- INSTANT CALCULATOR PAGE (core feature) ----------
     function calculatorPage() {
         let basketHtml = '';
         let totalSum = 0;
@@ -444,7 +463,7 @@
         });
         return `
             <div class="calculator-card">
-                <div class="calc-title"><i class="fas fa-bolt"></i> Instant Calculator — Today's quick expenses (get back / track instantly)</div>
+                <div class="calc-title"><i class="fas fa-bolt"></i> Instant Calculator — Today's quick expenses (track & get back)</div>
                 <div class="calc-input-group">
                     <div class="calc-field"><label>Item name (e.g. lunch, groceries)</label><input type="text" id="instantItemName" placeholder="What did you buy?"></div>
                     <div class="calc-field"><label>Amount (${getSymbol(appStore.profile.currency)})</label><input type="number" id="instantAmount" step="0.01" placeholder="0.00"></div>
@@ -468,14 +487,13 @@
     }
 
     function historyPage() {
-        return `<div style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap"><select id="historyTypeFilter"><option value="">All</option><option value="income">Income</option><option value="expense">Expense</option></select><input type="month" id="historyMonthFilter"><button id="resetHistoryBtn" class="btn-outline">Reset</button></div><div class="table-wrapper"><table><thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Desc</th><th>Amount</th><th>Actions</th></tr></thead><tbody id="historyTableBody"></tbody></table></div><div id="emptyHistoryMsg" style="display:none" class="empty-placeholder">📭 No transactions yet</div>`;
+        return `<div style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap"><select id="historyTypeFilter"><option value="">All</option><option value="income">Income</option><option value="expense">Expense</option></select><input type="month" id="historyMonthFilter"><button id="resetHistoryBtn" class="btn-outline">Reset</button></div><div class="table-wrapper"><table style="width:100%"><thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Desc</th><th>Amount</th><th>Actions</th></tr></thead><tbody id="historyTableBody"></tbody></table></div><div id="emptyHistoryMsg" style="display:none" class="empty-placeholder">📭 No transactions yet</div>`;
     }
 
     function summaryPage() {
-        return `<div style="margin-bottom:20px"><label>📅 Month: </label><input type="month" id="summaryMonthPicker" value="${new Date().toISOString().slice(0,7)}"></div><div class="stat-grid-4" id="summaryStatCards"></div><div class="chart-card-glass"><canvas id="summaryPieChart" height="230"></canvas></div><div class="table-wrapper" style="margin-top:24px"><table><thead><tr><th>Category</th><th>Count</th><th>Amount</th><th>%</th></tr></thead><tbody id="summaryCategoryBody"></tbody></table></div>`;
+        return `<div style="margin-bottom:20px"><label>📅 Month: </label><input type="month" id="summaryMonthPicker" value="${new Date().toISOString().slice(0,7)}"></div><div class="stat-grid-4" id="summaryStatCards"></div><div class="chart-card-glass"><canvas id="summaryPieChart" height="230"></canvas></div><div class="table-wrapper" style="margin-top:24px"><table style="width:100%"><thead><tr><th>Category</th><th>Count</th><th>Amount</th><th>%</th></tr></thead><tbody id="summaryCategoryBody"></tbody></table></div>`;
     }
 
-    // -------- dynamic rendering with chart helpers --------
     let activeCharts = { doughnut: null, bar: null, trend: null, sumPie: null };
 
     function renderDashboardCharts() {
@@ -504,7 +522,8 @@
         const totalInc = monthTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
         const totalExp = monthTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
         const saved = totalInc - totalExp;
-        document.getElementById("summaryStatCards").innerHTML = `<div class="stat-card-modern"><div class="stat-label-sm">Income</div><div class="stat-number-lg text-success">${formatMoney(totalInc)}</div></div><div class="stat-card-modern"><div class="stat-label-sm">Expense</div><div class="stat-number-lg text-danger">${formatMoney(totalExp)}</div></div><div class="stat-card-modern"><div class="stat-label-sm">Saved</div><div class="stat-number-lg">${formatMoney(saved)}</div></div>`;
+        const statsDiv = document.getElementById("summaryStatCards");
+        if(statsDiv) statsDiv.innerHTML = `<div class="stat-card-modern"><div class="stat-label-sm">Income</div><div class="stat-number-lg text-success">${formatMoney(totalInc)}</div></div><div class="stat-card-modern"><div class="stat-label-sm">Expense</div><div class="stat-number-lg text-danger">${formatMoney(totalExp)}</div></div><div class="stat-card-modern"><div class="stat-label-sm">Saved</div><div class="stat-number-lg">${formatMoney(saved)}</div></div>`;
         const catExp = {};
         monthTx.filter(t=>t.type==='expense').forEach(e=>{ catExp[e.category] = (catExp[e.category]||0)+e.amount; });
         const tbody = document.getElementById("summaryCategoryBody");
@@ -528,12 +547,10 @@
         tbody.innerHTML = filtered.map(t => `<tr><td>${formatDateRead(t.date)}</td><td><span class="badge-custom">${t.type==='income'?'💰 Income':'💸 Expense'}</span></td><td>${t.category}</td><td>${t.description?.slice(0,30)||'-'}</td><td class="${t.type==='income'?'text-success':'text-danger'}">${t.type==='income'?'+':'-'}${formatMoney(t.amount)}</td><td><i class="fas fa-edit action-icon" onclick="editTransaction(${t.id})"></i> <i class="fas fa-trash-alt action-icon" onclick="deleteTransactionById(${t.id})"></i></td></tr>`).join('');
     }
 
-    // global actions
     window.editTransaction = (id) => { const tx = appStore.transactions.find(t=>t.id===id); if(tx) { const newAmt = prompt("Edit amount", tx.amount); if(newAmt && !isNaN(parseFloat(newAmt))) { tx.amount = parseFloat(newAmt); const newCat = prompt("Edit category", tx.category); if(newCat) tx.category = newCat; persistAll(); showNotif("Updated"); renderCurrentPage(); } } };
     window.deleteTransactionById = (id) => { if(confirm("Permanently delete?")) { appStore.transactions = appStore.transactions.filter(t=>t.id!==id); persistAll(); showNotif("Deleted"); renderCurrentPage(); } };
     window.removeInstantItem = (idx) => { instantBasket.splice(idx,1); renderCurrentPage(); };
 
-    // helper
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, (m)=>({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
 
     let currentActivePage = "dashboard";
@@ -567,7 +584,7 @@
             }
             persistAll();
             instantBasket = [];
-            showNotif(`Saved ${instantBasket.length} expenses from calculator!`);
+            showNotif(`Saved expenses from calculator!`);
             renderCurrentPage();
         });
     }
@@ -583,7 +600,34 @@
 
     document.querySelectorAll(".nav-item-modern").forEach(btn => btn.addEventListener("click",()=>switchPage(btn.getAttribute("data-page"))));
     document.getElementById("exportDataBtn")?.addEventListener("click",()=>{ const dataStr = JSON.stringify(appStore,null,2); const blob = new Blob([dataStr],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`salaryvault_backup.json`; a.click(); showNotif("Export done"); });
-    document.getElementById("helpBtn")?.addEventListener("click",()=>alert("✨ SalaryVault Features:\n• Dashboard shows monthly income/expense\n• Instant Calculator: track daily purchases & get back money\n• Save calculator entries as real expenses\n• Full transaction history edit/delete\n• Charts & summaries\n• Data stays in your browser"));
+    document.getElementById("helpBtn")?.addEventListener("click",()=>alert("✨ SalaryVault Features:\n• Dashboard shows monthly income/expense\n• Instant Calculator: track daily purchases & get back money\n• Save calculator entries as real expenses\n• Full transaction history edit/delete\n• Charts & summaries\n• Data stays in your browser\n• Install as App for quick access"));
+
+    // ---------- PWA: SERVICE WORKER + INSTALL PROMPT ----------
+    let deferredPrompt;
+    const installBtn = document.getElementById('installAppBtn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.style.display = 'flex';
+    });
+
+    installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') installBtn.style.display = 'none';
+            deferredPrompt = null;
+        }
+    });
+
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').then(reg => {
+                console.log('SW registered:', reg);
+            }).catch(err => console.log('SW failed:', err));
+        });
+    }
 
     loadFromStorage();
     renderCurrentPage();
