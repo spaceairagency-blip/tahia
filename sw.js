@@ -1,4 +1,4 @@
-const CACHE_NAME = 'v2_cache';
+const CACHE_NAME = 'v3_cache';
 const ASSETS = ['/', '/index.html', ];
 
 // 1. Install Event (Caching core files)
