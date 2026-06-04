@@ -1,0 +1,582 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>SalaryVault — Smart Finance Tracker + Instant Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-deep: #030712;
+            --bg-surface: #0f172a;
+            --bg-card: #111827dd;
+            --accent-cyan: #06b6d4;
+            --accent-purple: #c084fc;
+            --accent-glow: #2dd4bf;
+            --success: #10b981;
+            --danger: #f43f5e;
+            --warning: #f59e0b;
+            --text-primary: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border-dim: #334155;
+        }
+
+        body {
+            background: radial-gradient(circle at 10% 30%, #0a0f1c, #020617);
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: var(--accent-cyan); border-radius: 10px; }
+
+        .app-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* SIDEBAR GLASS */
+        .sidebar-premium {
+            width: 270px;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(14px);
+            border-right: 1px solid rgba(6, 182, 212, 0.25);
+            padding: 28px 18px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            transition: 0.2s;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 48px;
+            padding-left: 6px;
+        }
+        .logo-area i {
+            font-size: 32px;
+            background: linear-gradient(145deg, #06b6d4, #c084fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .logo-area span {
+            font-size: 1.6rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #e0f2fe, #e9d5ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .nav-item-modern {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 18px;
+            margin: 6px 0;
+            border-radius: 40px;
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        .nav-item-modern i { width: 26px; font-size: 1.2rem; }
+        .nav-item-modern:hover {
+            background: rgba(6, 182, 212, 0.12);
+            color: white;
+            transform: translateX(4px);
+        }
+        .nav-item-modern.active {
+            background: linear-gradient(95deg, rgba(6, 182, 212, 0.2), rgba(192, 132, 252, 0.1));
+            border-left: 3px solid var(--accent-cyan);
+            color: white;
+            font-weight: 600;
+        }
+
+        /* main area */
+        .main-dashboard {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .header-glass {
+            background: rgba(17, 24, 39, 0.6);
+            backdrop-filter: blur(12px);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(71, 85, 105, 0.4);
+        }
+        .page-headline {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #f8fafc, #a5f3fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .btn-outline {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid #06b6d460;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #e2e8f0;
+        }
+        .btn-outline i { margin-right: 8px; }
+        .btn-outline:hover { background: var(--accent-cyan); color: #030712; border-color: transparent; }
+
+        .content-scroll {
+            padding: 28px 32px;
+            flex: 1;
+        }
+        .page-view {
+            display: none;
+            animation: fadeSlide 0.3s ease;
+        }
+        .page-view.active-page {
+            display: block;
+        }
+        @keyframes fadeSlide {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* card styles */
+        .stat-grid-4 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        .stat-card-modern {
+            background: linear-gradient(145deg, #111827cc, #0f172acc);
+            backdrop-filter: blur(8px);
+            border-radius: 28px;
+            padding: 22px;
+            border: 1px solid rgba(6, 182, 212, 0.2);
+            transition: all 0.25s;
+        }
+        .stat-card-modern:hover { border-color: var(--accent-cyan); transform: translateY(-3px); }
+        .stat-label-sm {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+        .stat-number-lg {
+            font-size: 2rem;
+            font-weight: 800;
+        }
+        .text-success { color: var(--success); }
+        .text-danger { color: var(--danger); }
+
+        /* instant calculator special section */
+        .calculator-card {
+            background: linear-gradient(135deg, #0f172ae6, #111827e6);
+            backdrop-filter: blur(12px);
+            border-radius: 32px;
+            border: 1px solid rgba(6, 182, 212, 0.4);
+            padding: 24px;
+            margin-bottom: 32px;
+            box-shadow: 0 12px 30px -10px rgba(0,0,0,0.5);
+        }
+        .calc-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--accent-cyan);
+        }
+        .calc-input-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .calc-field {
+            flex: 1;
+            min-width: 160px;
+        }
+        .calc-field label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .calc-field input, .calc-field select {
+            background: #030712;
+            border: 1px solid #334155;
+            border-radius: 24px;
+            padding: 12px 16px;
+            width: 100%;
+            color: white;
+        }
+        .instant-list {
+            margin-top: 20px;
+            background: #03071280;
+            border-radius: 24px;
+            padding: 12px;
+        }
+        .instant-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            border-bottom: 1px solid #334155;
+            align-items: center;
+        }
+        .instant-total {
+            margin-top: 16px;
+            text-align: right;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border-top: 2px dashed var(--accent-cyan);
+            padding-top: 16px;
+        }
+
+        .chart-double {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+            gap: 24px;
+            margin-bottom: 28px;
+        }
+        .chart-card-glass {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 28px;
+            padding: 20px;
+            border: 1px solid #334155;
+        }
+
+        /* forms */
+        .form-modern-card {
+            background: rgba(17, 24, 39, 0.8);
+            border-radius: 32px;
+            padding: 28px;
+            max-width: 700px;
+            border: 1px solid #2d3a5e;
+        }
+        input, select, textarea {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 28px;
+            padding: 12px 18px;
+            width: 100%;
+            color: white;
+        }
+        input:focus, select:focus { border-color: var(--accent-cyan); outline: none; }
+        .btn-primary-grad {
+            background: linear-gradient(105deg, #0891b2, #06b6d4);
+            border: none;
+            padding: 12px 28px;
+            border-radius: 40px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .toast-message {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #111827f2;
+            backdrop-filter: blur(12px);
+            border-left: 5px solid var(--success);
+            padding: 12px 24px;
+            border-radius: 60px;
+            display: none;
+            z-index: 200;
+        }
+        .action-icon {
+            cursor: pointer;
+            background: #1e293b;
+            padding: 6px 10px;
+            border-radius: 30px;
+            margin: 0 4px;
+        }
+        @media (max-width: 780px) {
+            .sidebar-premium { width: 90px; padding: 20px 8px; }
+            .sidebar-premium .logo-area span { display: none; }
+            .nav-item-modern span:last-child { display: none; }
+            .content-scroll { padding: 20px; }
+        }
+        .badge-custom {
+            background: #1e293b;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-size: 0.7rem;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 14px 8px; background: #1e293b80; }
+        td { padding: 12px 8px; border-bottom: 1px solid #1e293b; }
+    </style>
+</head>
+<body>
+<div class="app-layout">
+    <div class="sidebar-premium">
+        <div class="logo-area"><i class="fas fa-calculator"></i><span>SalaryVault</span></div>
+        <div class="nav-menu">
+            <div class="nav-item-modern active" data-page="dashboard"><i class="fas fa-chart-line"></i><span>Dashboard</span></div>
+            <div class="nav-item-modern" data-page="profile"><i class="fas fa-user-astronaut"></i><span>Profile</span></div>
+            <div class="nav-item-modern" data-page="income"><i class="fas fa-circle-dollar"></i><span>Add Income</span></div>
+            <div class="nav-item-modern" data-page="expense"><i class="fas fa-cart-shopping"></i><span>Add Expense</span></div>
+            <div class="nav-item-modern" data-page="calculator"><i class="fas fa-calculator"></i><span>Instant Calc</span></div>
+            <div class="nav-item-modern" data-page="history"><i class="fas fa-clock-rotate-left"></i><span>Transactions</span></div>
+            <div class="nav-item-modern" data-page="summary"><i class="fas fa-chart-pie"></i><span>Summary</span></div>
+        </div>
+    </div>
+
+    <div class="main-dashboard">
+        <div class="header-glass">
+            <div class="page-headline" id="pageTitle"><i class="fas fa-chart-line"></i> Dashboard</div>
+            <div><button class="btn-outline" id="exportDataBtn"><i class="fas fa-download"></i> Export</button>
+            <button class="btn-outline" id="helpBtn" style="margin-left:10px"><i class="fas fa-question"></i> Guide</button></div>
+        </div>
+        <div class="content-scroll" id="renderArea"></div>
+    </div>
+</div>
+<div id="toastMsg" class="toast-message"></div>
+
+<script>
+    // ------------------ STATE (fresh start, no demo data) ------------------
+    let appStore = {
+        profile: { name: "", email: "", salary: 0, currency: "USD" },
+        transactions: []   // completely empty initially
+    };
+
+    // Instant calculator temporary array (not saved to localStorage unless user adds expense)
+    let instantBasket = [];   // { name, amount }
+
+    // helpers
+    const getSymbol = (cur) => ({ USD:"$", EUR:"€", GBP:"£", BDT:"৳", INR:"₹" }[cur] || "$");
+    function formatMoney(amt) { return `${getSymbol(appStore.profile.currency)} ${Math.abs(amt).toFixed(2)}`; }
+    function formatDateRead(d) { return new Date(d).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); }
+
+    // storage
+    function persistAll() { localStorage.setItem("salaryVault_data", JSON.stringify({ profile: appStore.profile, transactions: appStore.transactions })); }
+    function loadFromStorage() {
+        const raw = localStorage.getItem("salaryVault_data");
+        if(raw) {
+            try { const data = JSON.parse(raw); if(data.profile) appStore.profile = data.profile; if(data.transactions) appStore.transactions = data.transactions; } catch(e) {}
+        }
+        if(!appStore.profile.currency) appStore.profile.currency = "USD";
+        if(appStore.profile.salary === undefined) appStore.profile.salary = 0;
+    }
+
+    function showNotif(msg, err=false) {
+        const toast = document.getElementById("toastMsg");
+        toast.textContent = (err ? "⚠️ " : "✅ ") + msg;
+        toast.style.display = "block";
+        toast.style.borderLeftColor = err ? "#f43f5e" : "#10b981";
+        setTimeout(() => toast.style.display = "none", 2500);
+    }
+
+    // current month income/expense
+    function getCurrentMonthTotals() {
+        const curMonth = new Date().toISOString().slice(0,7);
+        const monthTx = appStore.transactions.filter(t => t.date.startsWith(curMonth));
+        const totalInc = monthTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+        const totalExp = monthTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+        return { totalInc, totalExp, balance: totalInc - totalExp };
+    }
+
+    // ---------- UI RENDERERS (each page) ----------
+    function dashboardPage() {
+        const { totalInc, totalExp, balance } = getCurrentMonthTotals();
+        const salary = appStore.profile.salary;
+        return `
+            <div class="stat-grid-4">
+                <div class="stat-card-modern"><div class="stat-label-sm"><i class="fas fa-arrow-up"></i> Total Income (this month)</div><div class="stat-number-lg text-success">${formatMoney(totalInc)}</div></div>
+                <div class="stat-card-modern"><div class="stat-label-sm"><i class="fas fa-arrow-down"></i> Total Expense (this month)</div><div class="stat-number-lg text-danger">${formatMoney(totalExp)}</div></div>
+                <div class="stat-card-modern"><div class="stat-label-sm"><i class="fas fa-wallet"></i> Net Balance</div><div class="stat-number-lg">${formatMoney(balance)}</div></div>
+                <div class="stat-card-modern"><div class="stat-label-sm"><i class="fas fa-briefcase"></i> Monthly Salary</div><div class="stat-number-lg">${formatMoney(salary)}</div></div>
+            </div>
+            <div class="chart-double">
+                <div class="chart-card-glass"><div class="stat-label-sm">Spending by category (current month)</div><canvas id="doughnutCatChart" height="200"></canvas></div>
+                <div class="chart-card-glass"><div class="stat-label-sm">Income vs Expense</div><canvas id="barIncExpChart" height="200"></canvas></div>
+            </div>
+            <div class="chart-card-glass"><div class="stat-label-sm">6-Month Trend</div><canvas id="trendLineChart" height="90"></canvas></div>
+        `;
+    }
+
+    function profileUI() {
+        return `<div class="form-modern-card"><h3><i class="fas fa-id-card"></i> Your Profile (start here)</h3><form id="profileFormSave"><div style="display:grid; grid-template-columns:1fr 1fr; gap:16px"><input type="text" id="fullNameInp" placeholder="Full name" value="${escapeHtml(appStore.profile.name || '')}"><input type="email" id="emailInp" placeholder="Email" value="${escapeHtml(appStore.profile.email || '')}"><input type="number" id="salaryInp" step="0.01" placeholder="Monthly salary" value="${appStore.profile.salary || 0}"><select id="currencyInp">${['USD','EUR','GBP','BDT','INR'].map(c=>`<option ${appStore.profile.currency===c?'selected':''} value="${c}">${c}</option>`).join('')}</select></div><button type="submit" class="btn-primary-grad" style="margin-top:24px"><i class="fas fa-save"></i> Save Profile</button></form></div>`;
+    }
+
+    function incomePage() {
+        return `<div class="form-modern-card"><h3><i class="fas fa-circle-dollar"></i> Record Income</h3><form id="incomeFormSubmit"><input type="number" id="incAmount" step="0.01" placeholder="Amount" required><input type="date" id="incDate" value="${new Date().toISOString().slice(0,10)}"><select id="incSource"><option>Salary</option><option>Freelance</option><option>Business</option><option>Investment</option><option>Bonus</option><option>Other</option></select><textarea id="incNote" placeholder="Optional note"></textarea><button type="submit" class="btn-primary-grad">➕ Add Income</button></form></div>`;
+    }
+
+    function expensePage() {
+        return `<div class="form-modern-card"><h3><i class="fas fa-receipt"></i> Record Expense</h3><form id="expenseFormSubmit"><input type="number" id="expAmount" step="0.01" placeholder="Amount" required><input type="date" id="expDate" value="${new Date().toISOString().slice(0,10)}"><select id="expCategory"><option>Food</option><option>Transport</option><option>Shopping</option><option>Entertainment</option><option>Bills</option><option>Healthcare</option><option>Rent</option><option>Travel</option><option>Other</option></select><input type="text" id="expDesc" placeholder="Description"><select id="payMethod"><option>Cash</option><option>Card</option><option>Mobile</option><option>Bank</option></select><button type="submit" class="btn-primary-grad">💸 Add Expense</button></form></div>`;
+    }
+
+    // ---------- INSTANT CALCULATOR PAGE (core feature) ----------
+    function calculatorPage() {
+        let basketHtml = '';
+        let totalSum = 0;
+        instantBasket.forEach((item, idx) => {
+            totalSum += item.amount;
+            basketHtml += `<div class="instant-item"><span><i class="fas fa-receipt"></i> ${escapeHtml(item.name)}</span><span>${formatMoney(item.amount)} <i class="fas fa-trash-alt action-icon" style="background:#7f1a1a;" onclick="removeInstantItem(${idx})"></i></span></div>`;
+        });
+        return `
+            <div class="calculator-card">
+                <div class="calc-title"><i class="fas fa-bolt"></i> Instant Calculator — Today's quick expenses (get back / track instantly)</div>
+                <div class="calc-input-group">
+                    <div class="calc-field"><label>Item name (e.g. lunch, groceries)</label><input type="text" id="instantItemName" placeholder="What did you buy?"></div>
+                    <div class="calc-field"><label>Amount (${getSymbol(appStore.profile.currency)})</label><input type="number" id="instantAmount" step="0.01" placeholder="0.00"></div>
+                    <div><button class="btn-primary-grad" id="addInstantBtn" style="margin-top:22px"><i class="fas fa-plus"></i> Add</button></div>
+                </div>
+                <div class="instant-list" id="instantBasketList">
+                    ${basketHtml || '<div style="text-align:center; padding:20px; color:#94a3b8;"><i class="fas fa-shopping-basket"></i> No items yet. Add today’s spending to calculate total.</div>'}
+                </div>
+                <div class="instant-total">
+                    <strong>🧾 Total instant expense: ${formatMoney(totalSum)}</strong>
+                    <div style="font-size:0.8rem; margin-top:8px;">✨ Use this to track daily cash outflow & request money back</div>
+                </div>
+                <div style="display:flex; gap:12px; margin-top:20px; justify-content:flex-end">
+                    <button id="clearInstantBtn" class="btn-outline"><i class="fas fa-trash-alt"></i> Clear all</button>
+                    <button id="saveAsExpenseBtn" class="btn-primary-grad"><i class="fas fa-save"></i> Save as expense(s)</button>
+                </div>
+                <p class="stat-label-sm" style="margin-top:16px"><i class="fas fa-info-circle"></i> Perfect for shop visits, shared bills, or tracking money to get back later.</p>
+            </div>
+            <div class="chart-card-glass"><div class="stat-label-sm">💡 Quick tip: Add items instantly → see total → save to history as one combined or separate transactions.</div></div>
+        `;
+    }
+
+    function historyPage() {
+        return `<div style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap"><select id="historyTypeFilter"><option value="">All</option><option value="income">Income</option><option value="expense">Expense</option></select><input type="month" id="historyMonthFilter"><button id="resetHistoryBtn" class="btn-outline">Reset</button></div><div class="table-wrapper"><table><thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Desc</th><th>Amount</th><th>Actions</th></tr></thead><tbody id="historyTableBody"></tbody></table></div><div id="emptyHistoryMsg" style="display:none" class="empty-placeholder">📭 No transactions yet</div>`;
+    }
+
+    function summaryPage() {
+        return `<div style="margin-bottom:20px"><label>📅 Month: </label><input type="month" id="summaryMonthPicker" value="${new Date().toISOString().slice(0,7)}"></div><div class="stat-grid-4" id="summaryStatCards"></div><div class="chart-card-glass"><canvas id="summaryPieChart" height="230"></canvas></div><div class="table-wrapper" style="margin-top:24px"><table><thead><tr><th>Category</th><th>Count</th><th>Amount</th><th>%</th></tr></thead><tbody id="summaryCategoryBody"></tbody></table></div>`;
+    }
+
+    // -------- dynamic rendering with chart helpers --------
+    let activeCharts = { doughnut: null, bar: null, trend: null, sumPie: null };
+
+    function renderDashboardCharts() {
+        const curMonth = new Date().toISOString().slice(0,7);
+        const monthTx = appStore.transactions.filter(t => t.date.startsWith(curMonth));
+        const expenses = monthTx.filter(t=>t.type==='expense');
+        const catMap = {};
+        expenses.forEach(e => catMap[e.category] = (catMap[e.category]||0) + e.amount);
+        const pieCtx = document.getElementById("doughnutCatChart")?.getContext('2d');
+        if(pieCtx) { if(activeCharts.doughnut) activeCharts.doughnut.destroy(); activeCharts.doughnut = new Chart(pieCtx, { type:'doughnut', data:{ labels:Object.keys(catMap), datasets:[{ data:Object.values(catMap), backgroundColor:['#06b6d4','#10b981','#f59e0b','#f43f5e','#c084fc','#3b82f6'] }] }, options:{ responsive:true, plugins:{ legend:{ labels:{ color:'#cbd5e1' } } } } }); }
+        const totalInc = monthTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+        const totalExp = monthTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+        const barCtx = document.getElementById("barIncExpChart")?.getContext('2d');
+        if(barCtx) { if(activeCharts.bar) activeCharts.bar.destroy(); activeCharts.bar = new Chart(barCtx, { type:'bar', data:{ labels:['Income','Expense'], datasets:[{ label:'Amount', data:[totalInc,totalExp], backgroundColor:['#10b981','#f43f5e'] }] }, options:{ indexAxis:'y', responsive:true } }); }
+        const months = [];
+        for(let i=5;i>=0;i--) { let d = new Date(); d.setMonth(d.getMonth()-i); months.push(d.toISOString().slice(0,7)); }
+        const incTrend = months.map(m => appStore.transactions.filter(t=>t.type==='income' && t.date.startsWith(m)).reduce((s,t)=>s+t.amount,0));
+        const expTrend = months.map(m => appStore.transactions.filter(t=>t.type==='expense' && t.date.startsWith(m)).reduce((s,t)=>s+t.amount,0));
+        const lineCtx = document.getElementById("trendLineChart")?.getContext('2d');
+        if(lineCtx) { if(activeCharts.trend) activeCharts.trend.destroy(); activeCharts.trend = new Chart(lineCtx, { type:'line', data:{ labels:months.map(m=>m.slice(5)+'/'+m.slice(0,4)), datasets:[{ label:'Income', data:incTrend, borderColor:'#10b981', tension:0.3 },{ label:'Expense', data:expTrend, borderColor:'#f43f5e', tension:0.3 }] }, options:{ responsive:true } }); }
+    }
+
+    function renderSummaryDetails() {
+        const month = document.getElementById("summaryMonthPicker")?.value || new Date().toISOString().slice(0,7);
+        const monthTx = appStore.transactions.filter(t=>t.date.startsWith(month));
+        const totalInc = monthTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+        const totalExp = monthTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+        const saved = totalInc - totalExp;
+        document.getElementById("summaryStatCards").innerHTML = `<div class="stat-card-modern"><div class="stat-label-sm">Income</div><div class="stat-number-lg text-success">${formatMoney(totalInc)}</div></div><div class="stat-card-modern"><div class="stat-label-sm">Expense</div><div class="stat-number-lg text-danger">${formatMoney(totalExp)}</div></div><div class="stat-card-modern"><div class="stat-label-sm">Saved</div><div class="stat-number-lg">${formatMoney(saved)}</div></div>`;
+        const catExp = {};
+        monthTx.filter(t=>t.type==='expense').forEach(e=>{ catExp[e.category] = (catExp[e.category]||0)+e.amount; });
+        const tbody = document.getElementById("summaryCategoryBody");
+        if(tbody) tbody.innerHTML = Object.entries(catExp).map(([cat,amt])=>`<tr><td>${cat}</td><td>${monthTx.filter(t=>t.type==='expense' && t.category===cat).length}</td><td class="text-danger">${formatMoney(amt)}</td><td>${totalExp>0?((amt/totalExp)*100).toFixed(1)+'%':'0%'}</td></tr>`).join('');
+        const pieCtx = document.getElementById("summaryPieChart")?.getContext('2d');
+        if(pieCtx) { if(activeCharts.sumPie) activeCharts.sumPie.destroy(); activeCharts.sumPie = new Chart(pieCtx, { type:'pie', data:{ labels:Object.keys(catExp), datasets:[{ data:Object.values(catExp), backgroundColor:['#06b6d4','#10b981','#f59e0b','#f43f5e','#c084fc'] }] }, options:{ responsive:true } }); }
+    }
+
+    function renderHistoryTable() {
+        const typeVal = document.getElementById("historyTypeFilter")?.value || "";
+        const monthVal = document.getElementById("historyMonthFilter")?.value || "";
+        let filtered = [...appStore.transactions];
+        if(typeVal) filtered = filtered.filter(t=>t.type===typeVal);
+        if(monthVal) filtered = filtered.filter(t=>t.date.startsWith(monthVal));
+        filtered.sort((a,b)=>new Date(b.date)-new Date(a.date));
+        const tbody = document.getElementById("historyTableBody");
+        const emptyDiv = document.getElementById("emptyHistoryMsg");
+        if(!tbody) return;
+        if(filtered.length===0) { tbody.innerHTML=""; if(emptyDiv) emptyDiv.style.display="block"; return; }
+        if(emptyDiv) emptyDiv.style.display="none";
+        tbody.innerHTML = filtered.map(t => `<tr><td>${formatDateRead(t.date)}</td><td><span class="badge-custom">${t.type==='income'?'💰 Income':'💸 Expense'}</span></td><td>${t.category}</td><td>${t.description?.slice(0,30)||'-'}</td><td class="${t.type==='income'?'text-success':'text-danger'}">${t.type==='income'?'+':'-'}${formatMoney(t.amount)}</td><td><i class="fas fa-edit action-icon" onclick="editTransaction(${t.id})"></i> <i class="fas fa-trash-alt action-icon" onclick="deleteTransactionById(${t.id})"></i></td></tr>`).join('');
+    }
+
+    // global actions
+    window.editTransaction = (id) => { const tx = appStore.transactions.find(t=>t.id===id); if(tx) { const newAmt = prompt("Edit amount", tx.amount); if(newAmt && !isNaN(parseFloat(newAmt))) { tx.amount = parseFloat(newAmt); const newCat = prompt("Edit category", tx.category); if(newCat) tx.category = newCat; persistAll(); showNotif("Updated"); renderCurrentPage(); } } };
+    window.deleteTransactionById = (id) => { if(confirm("Permanently delete?")) { appStore.transactions = appStore.transactions.filter(t=>t.id!==id); persistAll(); showNotif("Deleted"); renderCurrentPage(); } };
+    window.removeInstantItem = (idx) => { instantBasket.splice(idx,1); renderCurrentPage(); };
+
+    // helper
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, (m)=>({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
+
+    let currentActivePage = "dashboard";
+    function renderCurrentPage() {
+        const container = document.getElementById("renderArea");
+        if(currentActivePage === "dashboard") { container.innerHTML = dashboardPage(); setTimeout(renderDashboardCharts, 80); }
+        else if(currentActivePage === "profile") { container.innerHTML = profileUI(); document.getElementById("profileFormSave")?.addEventListener("submit", (e)=>{ e.preventDefault(); appStore.profile.name = document.getElementById("fullNameInp").value; appStore.profile.email = document.getElementById("emailInp").value; appStore.profile.salary = parseFloat(document.getElementById("salaryInp").value)||0; appStore.profile.currency = document.getElementById("currencyInp").value; persistAll(); showNotif("Profile saved"); renderCurrentPage(); }); }
+        else if(currentActivePage === "income") { container.innerHTML = incomePage(); document.getElementById("incomeFormSubmit")?.addEventListener("submit",(e)=>{ e.preventDefault(); let amt = parseFloat(document.getElementById("incAmount").value); if(isNaN(amt)) return; appStore.transactions.push({ id: Date.now(), type:'income', amount:amt, date:document.getElementById("incDate").value, category:document.getElementById("incSource").value, description:document.getElementById("incNote").value }); persistAll(); showNotif(`Income ${formatMoney(amt)} added`); renderCurrentPage(); }); }
+        else if(currentActivePage === "expense") { container.innerHTML = expensePage(); document.getElementById("expenseFormSubmit")?.addEventListener("submit",(e)=>{ e.preventDefault(); let amt = parseFloat(document.getElementById("expAmount").value); if(isNaN(amt)) return; appStore.transactions.push({ id: Date.now(), type:'expense', amount:amt, date:document.getElementById("expDate").value, category:document.getElementById("expCategory").value, description:document.getElementById("expDesc").value, method:document.getElementById("payMethod").value }); persistAll(); showNotif(`Expense ${formatMoney(amt)} added`); renderCurrentPage(); }); }
+        else if(currentActivePage === "calculator") { container.innerHTML = calculatorPage(); attachCalcEvents(); }
+        else if(currentActivePage === "history") { container.innerHTML = historyPage(); renderHistoryTable(); document.getElementById("historyTypeFilter")?.addEventListener("change",()=>renderHistoryTable()); document.getElementById("historyMonthFilter")?.addEventListener("change",()=>renderHistoryTable()); document.getElementById("resetHistoryBtn")?.addEventListener("click",()=>{ document.getElementById("historyTypeFilter").value=""; document.getElementById("historyMonthFilter").value=""; renderHistoryTable(); }); }
+        else if(currentActivePage === "summary") { container.innerHTML = summaryPage(); renderSummaryDetails(); document.getElementById("summaryMonthPicker")?.addEventListener("change",()=>renderSummaryDetails()); }
+    }
+
+    function attachCalcEvents() {
+        document.getElementById("addInstantBtn")?.addEventListener("click", () => {
+            let name = document.getElementById("instantItemName").value.trim();
+            let amount = parseFloat(document.getElementById("instantAmount").value);
+            if(!name || isNaN(amount) || amount<=0) { showNotif("Enter item name & valid amount", true); return; }
+            instantBasket.push({ name, amount });
+            document.getElementById("instantItemName").value = "";
+            document.getElementById("instantAmount").value = "";
+            renderCurrentPage();
+        });
+        document.getElementById("clearInstantBtn")?.addEventListener("click", () => { instantBasket = []; renderCurrentPage(); });
+        document.getElementById("saveAsExpenseBtn")?.addEventListener("click", () => {
+            if(instantBasket.length === 0) { showNotif("No items to save", true); return; }
+            const todayDate = new Date().toISOString().slice(0,10);
+            for(let item of instantBasket) {
+                appStore.transactions.push({ id: Date.now()+Math.random(), type:'expense', amount:item.amount, date:todayDate, category:"Instant Shop", description:item.name, method:"Cash" });
+            }
+            persistAll();
+            instantBasket = [];
+            showNotif(`Saved ${instantBasket.length} expenses from calculator!`);
+            renderCurrentPage();
+        });
+    }
+
+    function switchPage(pageId) {
+        currentActivePage = pageId;
+        document.querySelectorAll(".nav-item-modern").forEach(el=>el.classList.remove("active"));
+        document.querySelector(`.nav-item-modern[data-page="${pageId}"]`)?.classList.add("active");
+        const titles = { dashboard:"📊 Dashboard", profile:"👤 Profile", income:"💰 Add Income", expense:"💸 Add Expense", calculator:"⚡ Instant Calculator", history:"📜 Transactions", summary:"📈 Summary" };
+        document.getElementById("pageTitle").innerHTML = `<i class="fas ${pageId==='dashboard'?'fa-chart-line':pageId==='calculator'?'fa-calculator':'fa-chart-simple'}"></i> ${titles[pageId]}`;
+        renderCurrentPage();
+    }
+
+    document.querySelectorAll(".nav-item-modern").forEach(btn => btn.addEventListener("click",()=>switchPage(btn.getAttribute("data-page"))));
+    document.getElementById("exportDataBtn")?.addEventListener("click",()=>{ const dataStr = JSON.stringify(appStore,null,2); const blob = new Blob([dataStr],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`salaryvault_backup.json`; a.click(); showNotif("Export done"); });
+    document.getElementById("helpBtn")?.addEventListener("click",()=>alert("✨ SalaryVault Features:\n• Dashboard shows monthly income/expense\n• Instant Calculator: track daily purchases & get back money\n• Save calculator entries as real expenses\n• Full transaction history edit/delete\n• Charts & summaries\n• Data stays in your browser"));
+
+    loadFromStorage();
+    renderCurrentPage();
+    if(appStore.transactions.length===0) console.log("fresh start — no demo data");
+</script>
+</body>
+</html>
